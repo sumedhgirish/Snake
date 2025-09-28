@@ -9,35 +9,19 @@ DIRECTIONS = {
 }
 
 
-# TODO: Remove this later
-TAIL_OFFSETS = {
-    "right": Vector2(1, 0.5),
-    "left": Vector2(0, 0.5),
-    "up": Vector2(0.5, 0),
-    "down": Vector2(0.5, 1),
-}
-
-HEAD_OFFSETS = {
-    "right": Vector2(0, 0.5),
-    "left": Vector2(1, 0.5),
-    "up": Vector2(0.5, 1),
-    "down": Vector2(0.5, 0),
-}
-
-
 class Snake:
 
     def __init__(
         self,
         start_pos: Vector2,
         start_facing="right",
+        start_length=4,
         color=(255, 255, 255),
     ):
-        self.tail: Vector2 = start_pos - DIRECTIONS[start_facing] * 2
-        self.head: Vector2 = start_pos
-        self.next: Vector2 = start_pos + DIRECTIONS[start_facing]
-        self.body: list[Vector2] = [start_pos - DIRECTIONS[start_facing]]
-        self.facing = start_facing
+        self.facing: list[str] = [start_facing] * 4
+        self.body: list[Vector2] = [
+            start_pos - DIRECTIONS[self.facing[i]] * i for i in range(start_length)
+        ][::-1]
 
         self.speed: float = 0  # blocks per second
         self.dx: float = 0
@@ -45,36 +29,49 @@ class Snake:
         self.color = color
 
     def update(self, runtime):
-        if self.dx < 1:
-            self.dx += runtime.dt * self.speed / 1000
-        else:
-            self.body.append(self.head)
-            self.head = self.next
-            self.next = self.head + DIRECTIONS[runtime.inputs["direction"]]
-            self.facing = runtime.inputs["direction"]
-            self.tail = self.body.pop(0)
-            self.dx = 0
+        self.dx += runtime.dt * self.speed / 1000
+        if self.dx >= 1:
+            assert self.dx < 2, "Snake trying to move too fast"
+            self.dx -= 1
+
+            self.facing.append(runtime.inputs["direction"])
+            self.body.append(self.body[-1] + DIRECTIONS[self.facing[-2]])
+
+            self.body.pop(0)
+            self.facing.pop(0)
 
     def blit(self, runtime):
+        for i, ele in enumerate(self.body):
+            pygame.draw.rect(
+                runtime.screen,
+                self.color,
+                pygame.Rect(
+                    (ele + DIRECTIONS[self.facing[i]] * self.dx)
+                    * runtime.settings["blocksize"],
+                    (runtime.settings["blocksize"], runtime.settings["blocksize"]),
+                ),
+            )
+
         pygame.draw.circle(
             runtime.screen,
             self.color,
             (
-                self.tail
-                + (self.body[0] - self.tail) * self.dx
-                + TAIL_OFFSETS[self.facing]
+                self.body[-1]
+                + Vector2(0.5, 0.5)
+                + DIRECTIONS[self.facing[-1]] * (0.5 + self.dx)
             )
             * runtime.settings["blocksize"],
-            runtime.settings["blocksize"] * 0.5,
+            runtime.settings["blocksize"] / 2,
         )
+
         pygame.draw.circle(
             runtime.screen,
             self.color,
             (
-                self.head
-                + (DIRECTIONS[self.facing]) * self.dx
-                + HEAD_OFFSETS[self.facing]
+                self.body[0]
+                + Vector2(0.5, 0.5)
+                + DIRECTIONS[self.facing[0]] * (-0.5 + self.dx)
             )
             * runtime.settings["blocksize"],
-            runtime.settings["blocksize"] * 0.5,
+            runtime.settings["blocksize"] / 2,
         )
