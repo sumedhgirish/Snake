@@ -1,9 +1,11 @@
-from pathlib import Path
 import pygame
 from pygame.math import Vector2
+from pathlib import Path
+import random
 import sys
 
 from core.snake import Snake
+from core.fruit import Fruit
 
 
 class App(object):
@@ -27,7 +29,13 @@ class App(object):
         self.dt = 0
 
         self.player = Snake(Vector2(5, 5))
-        self.player.speed = 8
+        self.player.speed = 10
+
+        self.fruit = Fruit(
+            int(self.settings["default_screensize"][0] / self.settings["blocksize"]),
+            int(self.settings["default_screensize"][1] / self.settings["blocksize"]),
+            (self.settings["blocksize"], self.settings["blocksize"]),
+        )
 
         self.running = True
 
@@ -54,6 +62,7 @@ class App(object):
 
     def blit(self):
         self.screen.blit(self.background)
+        self.fruit.blit(self)
         self.player.blit(self)
 
     def handle_events(self):
@@ -70,6 +79,16 @@ class App(object):
                     self.inputs["direction"] = "up"
                 if event.key == pygame.K_DOWN and self.player.facing[-1] != "up":
                     self.inputs["direction"] = "down"
+
+    def out_of_bounds(self, position: Vector2):
+        return (
+            position.x < 0
+            or position.y < 0
+            or position.x
+            > self.settings["default_screensize"][0] / self.settings["blocksize"]
+            or position.y
+            > self.settings["default_screensize"][1] / self.settings["blocksize"]
+        )
 
 
 if __name__ == "__main__":
